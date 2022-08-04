@@ -1,5 +1,5 @@
 # Azure-DevOps-YAML-Pipelines
-YML source controlled pipelines for Pull Request, Continues Integration, Continues Deployments
+YAML source controlled pipelines for Pull Request, Continues Integration, Continues Deployments
 
 ## PR- Pull Request Pipeline
 
