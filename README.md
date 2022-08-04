@@ -8,6 +8,7 @@ Continues integration on Main branch to build & produce deployable artifact and 
 
 ### Provisioning:
 
-### ProvisioningPipeline: YML pipeline to execute Provisioning ARM templates on Test and Live resource groups with manual validation to avoid unknown infrastructure                               modification
+### ProvisioningPipeline:
+YML pipeline to execute Provisioning ARM templates on Test and Live resource groups with manual validation to avoid unknown infrastructure modification
 ### ProvidioningScript:
-                            ARM template with paramter file to create App Service to deploy Angular Application with deployment slot and Application Insight
+ARM template with paramter file to create App Service to deploy Angular Application with deployment slot and Application Insight
