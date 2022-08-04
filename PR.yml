@@ -1,0 +1,24 @@
+trigger: none
+jobs:
+- job: Job_1
+  displayName: Agent job 1
+  pool:
+    vmImage: windows-latest
+  steps:
+  - checkout: self
+  - task: UseDotNet@2
+    displayName: Use .NET Core sdk 6.0.x
+    inputs:
+      version: 6.0.x
+  - task: DotNetCoreCLI@2
+    displayName: Restore
+    inputs:
+      command: restore
+      projects: '**/{StartProjectName}.csproj'
+      feedRestore: {NugetFeedID}
+  - task: DotNetCoreCLI@2
+    displayName: dotnet build
+    inputs:
+      projects: '**/{ProjectName}.csproj'
+      arguments: --configuration $(BuildConfiguration)
+...

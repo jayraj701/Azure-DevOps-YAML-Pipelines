@@ -1,0 +1,113 @@
+﻿trigger:
+- main
+
+stages:
+    - stage:
+      displayName: Build
+      jobs:
+       - job: BuildAndPublish
+         steps:
+            - task: UseDotNet@2
+              displayName: 'Use .NET 6.0 sdk'
+              inputs:
+                version: 6.x
+            - task: DotNetCoreCLI@2
+              displayName: Restore
+              inputs:
+                command: restore
+                projects: '**/*.csproj'
+                feedRestore: {feedRestoreId}
+            - task: DotNetCoreCLI@2
+              displayName: Build
+              inputs:
+                projects: '**/*.csproj'
+                arguments: '--configuration $(BuildConfiguration) --no-restore'
+           
+            - task: DotNetCoreCLI@2
+              displayName: Publish XYZ API
+              inputs:
+                command: publish
+                publishWebProjects: false
+                projects: '**/{ProjectName}.csproj'
+                arguments: '--no-restore --configuration $(BuildConfiguration) --output $(build.artifactstagingdirectory)/{FolderName} --no-build'
+                zipAfterPublish: false
+                modifyOutputPath: false
+           
+            - task: PublishBuildArtifacts@1
+              displayName: 'Publish Artifact: XYZDeployableArtifact'
+              inputs:
+                PathtoPublish: '$(build.artifactstagingdirectory)'
+                ArtifactName: XYZDeployableArtifact
+
+    - stage: Test
+      displayName: 'Test Deployment'
+      jobs:
+        - deployment:
+          environment: 'Test'
+          strategy:
+           runOnce:
+             deploy:
+              steps:
+              - task: AzureRmWebAppDeployment@4
+                displayName: 'Azure Web App Deploy:  Stagging'
+                inputs:
+                  ConnectionType: 'AzureRM'
+                  azureSubscription: '{ServiceConnectionName}'
+                  appType: webApp
+                  WebAppName: '{WebAppName}'
+                  deployToSlotOrASE: true
+                  resourceGroupName: '{ResourceGroupName}'
+                  slotName: '{SlotName}'                  
+                  packageForLinux: '$(Pipeline.Workspace)/XYZDeployableArtifact/API'             
+              - task: AzureAppServiceManage@0
+                displayName: Swap XYZ.API slots
+                inputs:
+                  azureSubscription: '{ServiceConnectionName}'
+                  Action: 'Swap Slots'
+                  WebAppName: '{WebAppName}'
+                  ResourceGroupName: '{ResourceGroupName}'
+                  SourceSlot: {StagingiSlotName}
+              
+    - stage: ReviewLive
+      jobs:
+        - job: waitForValidation
+          displayName: Wait for Approval  
+          pool: server    
+          timeoutInMinutes: 4320
+          steps:   
+          - task: ManualValidation@0
+            timeoutInMinutes: 1440
+            inputs:
+               notifyUsers: |
+                jayrajnimbalkar@RYoshiga.co.uk
+               instructions: 'Please validate the Test platform changes and resume'
+               onTimeout: 'resume'
+                  
+    - stage: Live
+      displayName: 'Live Deployment'
+      jobs:
+        - deployment:
+          environment: 'Live'
+          strategy:
+           runOnce:
+             deploy:
+              steps:
+              - task: AzureRmWebAppDeployment@4
+                displayName: 'Azure Web API Deploy:  Stagging'
+                inputs:
+                  ConnectionType: 'AzureRM'
+                  azureSubscription:  '{ServiceConnectionName}'
+                  appType: webApp
+                  WebAppName: '{WebAppName}'
+                  deployToSlotOrASE: true
+                  resourceGroupName: {ResourceGroupName}
+                  slotName: '{SlotName}'                  
+                  packageForLinux: '$(Pipeline.Workspace)/XYZAPIDeployableArtifact/API'             
+              - task: AzureAppServiceManage@0
+                displayName: Swap XYZ.API slots
+                inputs:
+                  azureSubscription: '{ServiceConnectionName}'
+                  Action: 'Swap Slots'
+                  WebAppName: '{WebAppName}'
+                  ResourceGroupName: '{ResourceGroupName}'
+                  SourceSlot: '{StagingSlotName}'

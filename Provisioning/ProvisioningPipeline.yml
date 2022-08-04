@@ -1,0 +1,60 @@
+
+stages:
+- stage: ReviewTest
+  jobs:
+  - job: waitForValidation
+    displayName: Wait for external validation  
+    pool: server    
+    timeoutInMinutes: 4320
+    steps:   
+    - task: ManualValidation@0
+      timeoutInMinutes: 1440
+      inputs:
+         notifyUsers: |
+            jayrajnimbalkar@RYoshiga.co.uk
+         instructions: 'Please validate the Provisioning changes and resume'
+         onTimeout: 'resume'
+         
+- stage: Test
+  jobs:  
+  - job: TestProvisioning
+    steps:
+    - task: AzureResourceManagerTemplateDeployment@3
+      displayName: 'ARM Template deployment: Test Resource Group scope'
+      inputs:
+        azureResourceManagerConnection: '{ServiceConnectionName}'
+        subscriptionId: '{subscriptionId}'
+        resourceGroupName: '{ResourceGroupName}'
+        location: 'UK South'
+        csmFile: 'template.json'
+        csmParametersFile: 'test-parameters.json'
+
+- stage: ReviewLive
+  jobs:
+  - job: waitForValidation
+    displayName: Wait for external validation  
+    pool: server    
+    timeoutInMinutes: 4320
+    steps:   
+    - task: ManualValidation@0
+      timeoutInMinutes: 1440
+      inputs:
+         notifyUsers: |
+            jayrajnimbalkar@RYoshiga.co.uk
+         instructions: 'Please validate the Provisioning changes and resume'
+         onTimeout: 'resume'
+
+- stage: Live
+  jobs:
+  - job: LiveProvisioning
+    steps:
+    - task: AzureResourceManagerTemplateDeployment@3
+      displayName: 'ARM Template deployment: Live Resource Group scope'
+      inputs:
+        azureResourceManagerConnection: '{ServiceConnectionName}'
+        subscriptionId: '{SubscriptionId}'
+        resourceGroupName: '{ResourceGroupName}'
+        location: 'UK South'
+        csmFile: 'template.json'
+        csmParametersFile: 'live-parameters.json' 
+
