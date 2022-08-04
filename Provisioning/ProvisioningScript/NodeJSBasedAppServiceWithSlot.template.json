@@ -1,0 +1,128 @@
+{
+  "$schema": "http://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "subscriptionId": {
+      "type": "string"
+    },
+    "name": {
+      "type": "string"
+    },
+    "stagingSlotName": {
+      "type": "string"
+    },
+    "location": {
+      "type": "string"
+    },
+    "hostingPlanName": {
+      "type": "string"
+    },
+    "serverFarmResourceGroup": {
+      "type": "string"
+    },
+    "alwaysOn": {
+      "type": "bool"
+    },
+    "currentStack": {
+      "type": "string"
+    },
+    "phpVersion": {
+      "type": "string"
+    },
+    "nodeVersion": {
+      "type": "string"
+    },
+    "appInsightName": {
+      "type": "string"
+    }
+  },
+  "variables": {},
+  "resources": [
+    {
+      "apiVersion": "2018-11-01",
+      "name": "[parameters('name')]",
+      "type": "Microsoft.Web/sites",
+      "location": "[parameters('location')]",
+      "tags": {
+        "Author": "JayrajNimbalkar"
+      },
+      "dependsOn": [
+        "[concat('Microsoft.Insights/components/', parameters('appInsightName'))]"
+      ],
+      "properties": {
+        "name": "[parameters('name')]",
+        "siteConfig": {
+          "appSettings": [
+            {
+              "name": "APPINSIGHTS_INSTRUMENTATIONKEY",
+              "value": "[reference(concat('Microsoft.Insights/components/', parameters('appInsightName')), '2015-05-01').InstrumentationKey]"
+            },
+            {
+              "name": "APPLICATIONINSIGHTS_CONNECTION_STRING",
+              "value": "[reference(concat('Microsoft.Insights/components/', parameters('appInsightName')), '2015-05-01').ConnectionString]"
+            },
+            {
+              "name": "ApplicationInsightsAgent_EXTENSION_VERSION",
+              "value": "~2"
+            },
+            {
+              "name": "XDT_MicrosoftApplicationInsights_Mode",
+              "value": "default"
+            },
+            {
+              "name": "XDT_MicrosoftApplicationInsights_NodeJS",
+              "value": "1"
+            },
+            {
+              "name": "WEBSITE_NODE_DEFAULT_VERSION",
+              "value": "[parameters('nodeVersion')]"
+            }
+          ],
+          "metadata": [
+            {
+              "name": "CURRENT_STACK",
+              "value": "[parameters('currentStack')]"
+            }
+          ],
+          "phpVersion": "[parameters('phpVersion')]",
+          "nodeVersion": "[parameters('nodeVersion')]",
+          "alwaysOn": "[parameters('alwaysOn')]"
+        },
+        "serverFarmId": "[concat('/subscriptions/', parameters('subscriptionId'),'/resourcegroups/', parameters('serverFarmResourceGroup'), '/providers/Microsoft.Web/serverfarms/', parameters('hostingPlanName'))]",
+        "clientAffinityEnabled": true,
+        "virtualNetworkSubnetId": null
+      },
+      "resources": [
+        {
+          "apiVersion": "2015-08-01",
+          "name": "[parameters('stagingSlotName')]",
+          "type": "slots",
+          "tags": {
+            "displayName": "webAppSlots"
+          },
+          "location": "[resourceGroup().location]",
+          "dependsOn": [
+            "[resourceId('Microsoft.Web/Sites', parameters('name'))]"
+          ],
+          "properties": {
+          },
+          "resources": []
+        }
+      ]
+    },
+    {
+      "apiVersion": "2020-02-02-preview",
+      "name": "[parameters('appInsightName')]",
+      "type": "microsoft.insights/components",
+      "location": "uksouth",
+      "tags": {
+        "Author": "JayrajNimbalkar"
+      },
+      "dependsOn": [],
+      "properties": {
+        "ApplicationId": "[parameters('name')]",                
+        "Application_Type": "web"        
+      }
+    }
+  ]
+}
